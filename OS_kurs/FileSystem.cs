@@ -1,24 +1,18 @@
 ﻿using OS_kurs.FS;
 using System;
 using System.IO;
-using System.Net;
-using System.Security.Policy;
 using System.Text;
-using System.Xml.Linq;
 
 namespace OS_kurs
 {
     class FileSystem
     {
-        string path = "GeorgeFS.data";
+        string path = "Drive";
         public byte UserID = 0;
         public byte GroupID = 0;
         public UInt16 Directory = 60;
 
-
-
         public INode[] IList = new INode[SuperBlock.IListSize];
-        public UserNode[] UserList = new UserNode[10];
         
         public FileSystem()
         {
@@ -129,7 +123,7 @@ namespace OS_kurs
             WriteNewFullName(addr, name, "dir");
             WriteDataInBlock(Directory, BitConverter.GetBytes(addr));
         }
-        public void Remove(string fullname)
+        public bool Remove(string fullname)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -204,12 +198,14 @@ namespace OS_kurs
                                 fs.Seek(blockOffset + 24 + i, SeekOrigin.Begin); // Переходим на место адреса удаляемого файла
                                 fs.Write(BitConverter.GetBytes((UInt16)0), 0, 2);
                             }
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
-        public void Rename(string name, string newName)
+        public bool Rename(string name, string newName)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -259,12 +255,14 @@ namespace OS_kurs
                             fs.Write(Encoding.UTF8.GetBytes(nname), 0, nname.Length);
                             fs.Seek(temp + 20, SeekOrigin.Begin);
                             fs.Write(Encoding.UTF8.GetBytes(expansion), 0, expansion.Length);
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
-        public void RenameDir(string name, string newName)
+        public bool RenameDir(string name, string newName)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -313,12 +311,14 @@ namespace OS_kurs
                                 fs.Write(BitConverter.GetBytes((UInt16)0), 0, 2);
                             fs.Seek(temp, SeekOrigin.Begin);
                             fs.Write(Encoding.UTF8.GetBytes(newName), 0, newName.Length);
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
-        public void MoveFile(string name, string dir)
+        public bool MoveFile(string name, string dir)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -387,13 +387,14 @@ namespace OS_kurs
                             fs.Close();
                             ChangeDir(dir);
                             WriteDataInBlock(Directory, BitConverter.GetBytes(inode));
-                            return;
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
-        public void RemoveDir(string fullname)
+        public bool RemoveDir(string fullname)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -467,12 +468,14 @@ namespace OS_kurs
                                 fs.Seek(blockOffset + 24 + i, SeekOrigin.Begin); // Переходим на место адреса удаляемого файла
                                 fs.Write(BitConverter.GetBytes((UInt16)0), 0, 2);
                             }
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
-        public void CopyFile(string name1, string name2)
+        public bool CopyFile(string name1, string name2)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -563,11 +566,12 @@ namespace OS_kurs
                             WriteDataInBlock(Directory, BitConverter.GetBytes(addrNew));
                             string data = ReadFile(name1);
                             WriteInFile(name2, data);
-                            return;
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
         public string ReadFile(string fullname)
         {
@@ -632,7 +636,7 @@ namespace OS_kurs
             }
             return "";
         }
-        public void WriteInFile(string fullname, string value)
+        public bool WriteInFile(string fullname, string value)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -698,11 +702,13 @@ namespace OS_kurs
                             fs.Seek(addr + 10, SeekOrigin.Begin); // Увеличиваем SizeInBytes
                             fs.Write(BitConverter.GetBytes((UInt16)(sizeInBytes + value.Length)), 0, 2);
                         }
+                        return true;
                     }
                 }
             }
+            return false;
         }
-        public void CopyDir(string name1, string name2)
+        public bool CopyDir(string name1, string name2)
         {
             byte[] files = ReadFileBlock(Directory);
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -787,11 +793,12 @@ namespace OS_kurs
                             fs.Close();
                             WriteNewFullName(addrNew, name2, "dir");
                             WriteDataInBlock(Directory, BitConverter.GetBytes(addrNew));
-                            return;
+                            return true;
                         }
                     }
                 }
             }
+            return false;
         }
         public bool ChangeRights(string rights, string fullname)
         {
@@ -914,7 +921,7 @@ namespace OS_kurs
 
                     fs.Seek(addr, SeekOrigin.Begin); // Считываем права
                     fs.Read(eight, 0, 8);
-                    res += Encoding.UTF8.GetString(eight) + "\t";
+                    res += Encoding.UTF8.GetString(eight).Substring(2) + "\t";
 
                     fs.Read(one, 0, 1); // Получаем UserID
                     UInt16 temp = (UInt16)one[0];
@@ -1185,10 +1192,10 @@ namespace OS_kurs
             }
             return res;
         }
-        public void AddUser(string login, string password)
+        public bool AddUser(string login, string password)
         {
             if (UserID != 0)
-                return;
+                return false;
             using (FileStream fs = new FileStream(path, FileMode.Open))
             {
                 for (int i = 5062; i < 5480; i += 42)
@@ -1205,17 +1212,18 @@ namespace OS_kurs
                         fs.Write(Encoding.UTF8.GetBytes(login), 0, login.Length);
                         fs.Seek(i + 20, SeekOrigin.Begin);
                         fs.Write(Encoding.UTF8.GetBytes(password), 0, password.Length);
-                        return;
+                        return true;
                     }
                 }
             }
+            return false;
         }
-        public void ChangeGroup(string login, string group)
+        public bool ChangeGroup(string login, string group)
         {
             if (UserID != 0)
-                return;
+                return false;
             if (Convert.ToInt32(group) > 255 || Convert.ToInt32(group) < 0)
-                return;
+                return false;
             using (FileStream fs = new FileStream(path, FileMode.Open))
             {
                 for (int i = 5062; i < 5480; i += 42)
@@ -1230,10 +1238,11 @@ namespace OS_kurs
                         byte[] gid = new byte[1];
                         gid[0] = Convert.ToByte(group);
                         fs.Write(gid, 0, 1);
-                        return;
+                        return true;
                     }
                 }
             }
+            return false;
         }
         public string GetValidString(byte[] buffer) { return Encoding.UTF8.GetString(buffer).Split('\0')[0]; }
         public void CreateDrive()
@@ -1294,15 +1303,14 @@ namespace OS_kurs
         {
             using (FileStream fs = new FileStream(path, FileMode.Open))
             {
-                UserList[0] = new UserNode();
                 fs.Seek(5060, SeekOrigin.Begin);
-                fs.Write(BitConverter.GetBytes(UserList[0].ID), 0, UserNode.IDSize);
-                fs.Write(BitConverter.GetBytes(UserList[0].GroupID), 0, UserNode.GroupIDSize);
-                fs.Write(Encoding.UTF8.GetBytes(UserList[0].Login), 0, UserList[0].Login.Length);
-                fs.Seek(15, SeekOrigin.Current);
+                fs.Write(BitConverter.GetBytes((byte)0), 0, 1);
+                fs.Write(BitConverter.GetBytes((byte)0), 0, 1);
+                fs.Write(Encoding.UTF8.GetBytes("admin"), 0, 5);
+                fs.Seek(14, SeekOrigin.Current);
                 fs.Write(BitConverter.GetBytes(0), 0, 1);
-                fs.Write(Encoding.UTF8.GetBytes(UserList[0].Password), 0, UserList[0].Password.Length);
-                fs.Seek(5480, SeekOrigin.Begin);
+                fs.Write(Encoding.UTF8.GetBytes("0000"), 0, 4);
+                fs.Seek(5479, SeekOrigin.Begin);
                 fs.Write(BitConverter.GetBytes(0), 0, 1);
             }
         }
@@ -1311,8 +1319,7 @@ namespace OS_kurs
             using (FileStream fs = new FileStream(path, FileMode.Open))
             {
                 fs.Seek(5480, SeekOrigin.Begin);
-                FileNode fnode = new FileNode();
-                fs.Write(Encoding.UTF8.GetBytes(fnode.Name), 0, fnode.Name.Length);
+                fs.Write(Encoding.UTF8.GetBytes("rootdir"), 0, 7);
                 fs.Seek(12, SeekOrigin.Current);
                 fs.Write(BitConverter.GetBytes(0), 0, 1);
                 fs.Write(BitConverter.GetBytes((UInt16)0), 0, 2);

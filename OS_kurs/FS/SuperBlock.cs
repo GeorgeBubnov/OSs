@@ -13,7 +13,7 @@ namespace OS_kurs.FS
         public const byte ListINodeSize = 20 * sizeof(UInt16);
         public const byte ListBlockSize = sizeof(UInt16);
 
-        public const string Type = "GeorgeFS";
+        public const string Type = "FMANAGER";
         public const UInt16 SizeInBlocks = 111;
         public const UInt16 IListSize = 100;
         public static UInt16 FreeBlockCount = 98;

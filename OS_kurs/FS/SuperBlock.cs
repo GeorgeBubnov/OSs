@@ -1,9 +1,6 @@
 ﻿using System;
-
-namespace OS_kurs.FS
-{
-    internal class SuperBlock
-    {
+namespace OS_kurs.FS {
+    internal class SuperBlock {
         public const byte TypeSize = 8;
         public const byte SizeInBlocksSize = sizeof(UInt16);
         public const byte IListSizeSize = sizeof(UInt16);
@@ -12,7 +9,6 @@ namespace OS_kurs.FS
         public const byte BlockSizeSize = sizeof(UInt16);
         public const byte ListINodeSize = 20 * sizeof(UInt16);
         public const byte ListBlockSize = sizeof(UInt16);
-
         public const string Type = "FMANAGER";
         public const UInt16 SizeInBlocks = 111;
         public const UInt16 IListSize = 100;

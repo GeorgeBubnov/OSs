@@ -1,5 +1,4 @@
 ﻿using System;
-
 namespace OS_kurs.FS
 {
     public class INode
@@ -12,7 +11,6 @@ namespace OS_kurs.FS
         public static byte SizeInBytesSize = 2;
         public static byte SizeInBlocksSize = 2;
         public static byte BlocksAddressesSize = 20;
-
         public string Access;
         public byte UserID;
         public byte GroupID;
@@ -21,7 +19,6 @@ namespace OS_kurs.FS
         public UInt16 SizeInBytes;
         public UInt16 SizeInBlocks;
         public UInt16[] BlocksAddresses = new UInt16[10];
-
         public INode()
         {
             Access = "TDrwxrwx";
@@ -34,8 +31,7 @@ namespace OS_kurs.FS
             BlocksAddresses = new UInt16[10];
             BlocksAddresses[0] = 5480;
         }
-
-        public INode(string access, byte userID, byte groupID, UInt16 sizeInBytes, UInt16 sizeInBlocks, 
+        public INode(string access, byte userID, byte groupID, UInt16 sizeInBytes, UInt16 sizeInBlocks,
             string creationDate, string modificationDate, UInt16[] blocksAddresses)
         {
             Access = access;

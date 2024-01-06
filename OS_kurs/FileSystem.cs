@@ -16,7 +16,6 @@ namespace OS_kurs
         
         public FileSystem()
         {
-            CreateDrive();
         }
         public bool ChangeDir(string name)
         {
@@ -573,6 +572,120 @@ namespace OS_kurs
             }
             return false;
         }
+        public bool ChangeRightsDir(string rights, string fullname)
+        {
+            byte[] files = ReadFileBlock(Directory);
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                byte[] two = new byte[2];
+                byte[] eight = new byte[8];
+                byte[] one = new byte[1];
+                byte[] twenty = new byte[20];
+                byte[] four = new byte[4];
+
+                fs.Seek(Directory + 10, SeekOrigin.Begin); // Считаем размер директории
+                fs.Read(two, 0, 2);
+                UInt16 count = (UInt16)BitConverter.ToInt16(two, 0);
+
+                for (int i = 0; i < count; i += 2)
+                {
+                    string res = "";
+                    two[0] = files[i];
+                    two[1] = files[i + 1];
+
+                    UInt16 addr = (UInt16)BitConverter.ToInt16(two, 0);
+
+                    fs.Seek(addr + 8, SeekOrigin.Begin); // Получаем UserID
+                    fs.Read(one, 0, 1);
+                    UInt16 temp = (UInt16)one[0];
+                    if (temp == UserID || 0 == UserID)
+                    {
+                        fs.Seek(addr + 30, SeekOrigin.Begin); // Получаем BlockAddress
+                        fs.Read(two, 0, 2);
+                        temp = (UInt16)BitConverter.ToInt16(two, 0);
+
+                        fs.Seek(temp, SeekOrigin.Begin); // Считываем название и расширение
+                        fs.Read(twenty, 0, 20);
+                        res += GetValidString(twenty);
+
+                        if (res == fullname)
+                        {
+                            fs.Seek(addr + 2, SeekOrigin.Begin);
+                            fs.Write(Encoding.UTF8.GetBytes(rights), 0, INode.AccessSize - 2);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        }
+        public string ReadDirectory()
+        {
+            byte[] files = ReadFileBlock(Directory);
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                string res = "";
+                byte[] two = new byte[2];
+                byte[] eight = new byte[8];
+                byte[] one = new byte[1];
+                byte[] twenty = new byte[20];
+                byte[] four = new byte[4];
+
+                fs.Seek(Directory + 10, SeekOrigin.Begin); // Считаем размер директории
+                fs.Read(two, 0, 2);
+                UInt16 count = (UInt16)BitConverter.ToInt16(two, 0);
+
+                for (int i = 0; i < count; i += 2)
+                {
+                    two[0] = files[i];
+                    two[1] = files[i + 1];
+
+                    UInt16 addr = (UInt16)BitConverter.ToInt16(two, 0);
+
+                    fs.Seek(addr, SeekOrigin.Begin); // Считываем права
+                    fs.Read(eight, 0, 8);
+                    res += Encoding.UTF8.GetString(eight).Substring(2) + "\t";
+
+                    fs.Read(one, 0, 1); // Получаем UserID
+                    UInt16 temp = (UInt16)one[0];
+
+                    fs.Seek(5062 + temp * 42, SeekOrigin.Begin); // Считываем имя пользователя
+                    fs.Read(twenty, 0, 20);
+                    res += GetValidString(twenty) + "\t";
+
+                    fs.Seek(addr + 10, SeekOrigin.Begin); // Считываем размер в байтах
+                    fs.Read(two, 0, 2);
+                    temp = (UInt16)BitConverter.ToInt16(two, 0);
+                    res += temp + "\t";
+
+                    fs.Seek(2, SeekOrigin.Current); // Считываем CreationTime
+                    fs.Read(eight, 0, 8);
+                    string date = Encoding.UTF8.GetString(eight);
+                    date = date.Insert(2, ".");
+                    date = date.Insert(5, ".");
+                    res += date + "\t";
+
+                    fs.Read(eight, 0, 8); // Считываем ModificationTime
+                    date = Encoding.UTF8.GetString(eight);
+                    date = date.Insert(2, ".");
+                    date = date.Insert(5, ".");
+                    res += date + "\t";
+
+                    fs.Read(two, 0, 2); // Получаем BlockAddress
+                    temp = (UInt16)BitConverter.ToInt16(two, 0);
+
+                    fs.Seek(temp, SeekOrigin.Begin);
+                    fs.Read(twenty, 0, 20);
+                    res += GetValidString(twenty);
+                    fs.Read(four, 0, 4);
+                    if (four[0] != 0)
+                        res += "." + GetValidString(four);
+                    res += "\n";
+                }
+
+                return res;
+            }
+        }
         public string ReadFile(string fullname)
         {
             byte[] files = ReadFileBlock(Directory);
@@ -849,120 +962,6 @@ namespace OS_kurs
                 return false;
             }
         }
-        public bool ChangeRightsDir(string rights, string fullname)
-        {
-            byte[] files = ReadFileBlock(Directory);
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                byte[] two = new byte[2];
-                byte[] eight = new byte[8];
-                byte[] one = new byte[1];
-                byte[] twenty = new byte[20];
-                byte[] four = new byte[4];
-
-                fs.Seek(Directory + 10, SeekOrigin.Begin); // Считаем размер директории
-                fs.Read(two, 0, 2);
-                UInt16 count = (UInt16)BitConverter.ToInt16(two, 0);
-
-                for (int i = 0; i < count; i += 2)
-                {
-                    string res = "";
-                    two[0] = files[i];
-                    two[1] = files[i + 1];
-
-                    UInt16 addr = (UInt16)BitConverter.ToInt16(two, 0);
-
-                    fs.Seek(addr + 8, SeekOrigin.Begin); // Получаем UserID
-                    fs.Read(one, 0, 1);
-                    UInt16 temp = (UInt16)one[0];
-                    if (temp == UserID || 0 == UserID)
-                    {
-                        fs.Seek(addr + 30, SeekOrigin.Begin); // Получаем BlockAddress
-                        fs.Read(two, 0, 2);
-                        temp = (UInt16)BitConverter.ToInt16(two, 0);
-
-                        fs.Seek(temp, SeekOrigin.Begin); // Считываем название и расширение
-                        fs.Read(twenty, 0, 20);
-                        res += GetValidString(twenty);
-
-                        if (res == fullname)
-                        {
-                            fs.Seek(addr + 2, SeekOrigin.Begin);
-                            fs.Write(Encoding.UTF8.GetBytes(rights), 0, INode.AccessSize - 2);
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-        }
-        public string ReadDirectory()
-        {
-            byte[] files = ReadFileBlock(Directory);
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                string res = "";
-                byte[] two = new byte[2];
-                byte[] eight = new byte[8];
-                byte[] one = new byte[1];
-                byte[] twenty = new byte[20];
-                byte[] four = new byte[4];
-
-                fs.Seek(Directory + 10, SeekOrigin.Begin); // Считаем размер директории
-                fs.Read(two, 0, 2);
-                UInt16 count = (UInt16)BitConverter.ToInt16(two, 0);
-
-                for (int i = 0; i < count; i += 2)
-                {
-                    two[0] = files[i];
-                    two[1] = files[i + 1];
-
-                    UInt16 addr = (UInt16)BitConverter.ToInt16(two, 0);
-
-                    fs.Seek(addr, SeekOrigin.Begin); // Считываем права
-                    fs.Read(eight, 0, 8);
-                    res += Encoding.UTF8.GetString(eight).Substring(2) + "\t";
-
-                    fs.Read(one, 0, 1); // Получаем UserID
-                    UInt16 temp = (UInt16)one[0];
-
-                    fs.Seek(5062 + temp * 42, SeekOrigin.Begin); // Считываем имя пользователя
-                    fs.Read(twenty, 0, 20);
-                    res += GetValidString(twenty) + "\t";
-
-                    fs.Seek(addr + 10, SeekOrigin.Begin); // Считываем размер в байтах
-                    fs.Read(two, 0, 2);
-                    temp = (UInt16)BitConverter.ToInt16(two, 0);
-                    res += temp + "\t";
-
-                    fs.Seek(2, SeekOrigin.Current); // Считываем CreationTime
-                    fs.Read(eight, 0, 8);
-                    string date = Encoding.UTF8.GetString(eight);
-                    date = date.Insert(2, ".");
-                    date = date.Insert(5, ".");
-                    res += date + "\t";
-
-                    fs.Read(eight, 0, 8); // Считываем ModificationTime
-                    date = Encoding.UTF8.GetString(eight);
-                    date = date.Insert(2, ".");
-                    date = date.Insert(5, ".");
-                    res += date + "\t";
-
-                    fs.Read(two, 0, 2); // Получаем BlockAddress
-                    temp = (UInt16)BitConverter.ToInt16(two, 0);
-
-                    fs.Seek(temp, SeekOrigin.Begin);
-                    fs.Read(twenty, 0, 20);
-                    res += GetValidString(twenty);
-                    fs.Read(four, 0, 4);
-                    if (four[0] != 0)
-                        res += "." + GetValidString(four);
-                    res += "\n";
-                }
-
-                return res;
-            }
-        }
         public byte[] ReadFileBlock(UInt16 iNodeOffset)
         {
             using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -1106,144 +1105,6 @@ namespace OS_kurs
                 fs.Write(BitConverter.GetBytes(newBladdress), 0, 2);
             }
         }
-        public void WriteDataInBlock(UInt16 address, byte[] data)
-        {
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                byte[] buffer = new byte[2];
-                fs.Seek(address + 30, SeekOrigin.Begin); // Выбираем первый блок
-                fs.Read(buffer, 0, 2);
-
-                UInt16 bladdress = (UInt16)BitConverter.ToInt16(buffer, 0);
-
-                fs.Seek(Directory + 10, SeekOrigin.Begin); // Считаем размер директории
-                fs.Read(buffer, 0, 2);
-                UInt16 count = (UInt16)BitConverter.ToInt16(buffer, 0);
-
-                fs.Seek(bladdress + 24 + count, SeekOrigin.Begin); // Записываем данные
-                fs.Write(data, 0, data.Length);
-
-                if (data.Length < 488)
-                {
-                    fs.Seek(bladdress + 510, SeekOrigin.Begin); // Заполняем нулями до конца блока TODO DELETE
-                    fs.Write(BitConverter.GetBytes((UInt16)0), 0, 2);
-                }
-
-                fs.Seek(address + 10, SeekOrigin.Begin); // Записываем атрибуты INode
-                fs.Write(BitConverter.GetBytes(count + data.Length), 0, INode.SizeInBytesSize);
-                fs.Write(BitConverter.GetBytes((count + data.Length + 24) / 512 + 1), 0, INode.SizeInBlocksSize);
-                fs.Seek(address + 22, SeekOrigin.Begin);
-                fs.Write(Encoding.UTF8.GetBytes(DateTime.Now.ToString("ddMMyyyy")), 0, INode.ModificationTimeSize);
-            }
-        }
-        public bool IsLogin(string login, string password) {
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                if (login == "")
-                    return false;
-
-                for(int i = 5062; i < 5480; i += 42)
-                {
-                    byte[] buffer = new byte[20];
-                    fs.Seek(i, SeekOrigin.Begin);
-                    fs.Read(buffer, 0, 20);
-
-                    string exLogin = GetValidString(buffer);
-
-                    if (exLogin == login)
-                    {
-                        fs.Seek(i + 20, SeekOrigin.Begin);
-                        fs.Read(buffer, 0, 20);
-
-                        string exPassword = GetValidString(buffer);
-
-                        if(exPassword == password)
-                        {
-                            byte[] id = new byte[1];
-                            fs.Seek(i-2, SeekOrigin.Begin);
-                            fs.Read(id, 0, 1);
-
-                            UserID = id[0];
-                            fs.Read(id, 0, 1);
-
-                            GroupID = id[0];
-                            return true;
-                        }
-                    }
-                }
-            }
-            
-            return false;
-        }
-        public string GetAllUsers()
-        {
-            string res = "";
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                for (int i = 5062; i < 5480; i += 42)
-                {
-                    byte[] buffer = new byte[20];
-                    fs.Seek(i, SeekOrigin.Begin);
-                    fs.Read(buffer, 0, 20);
-
-                    if (GetValidString(buffer) != "")
-                        res += GetValidString(buffer) + "\n";
-                }
-            }
-            return res;
-        }
-        public bool AddUser(string login, string password)
-        {
-            if (UserID != 0)
-                return false;
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                for (int i = 5062; i < 5480; i += 42)
-                {
-                    byte[] buffer = new byte[20];
-                    fs.Seek(i, SeekOrigin.Begin);
-                    fs.Read(buffer, 0, 20);
-
-                    if (GetValidString(buffer) == "") // Находим с пустым именем
-                    {
-                        fs.Seek(i - 2, SeekOrigin.Begin);
-                        fs.Write(BitConverter.GetBytes((byte)((i - 5062) / 42)), 0, 1);
-                        fs.Write(BitConverter.GetBytes((byte)0), 0, 1);
-                        fs.Write(Encoding.UTF8.GetBytes(login), 0, login.Length);
-                        fs.Seek(i + 20, SeekOrigin.Begin);
-                        fs.Write(Encoding.UTF8.GetBytes(password), 0, password.Length);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-        public bool ChangeGroup(string login, string group)
-        {
-            if (UserID != 0)
-                return false;
-            if (Convert.ToInt32(group) > 255 || Convert.ToInt32(group) < 0)
-                return false;
-            using (FileStream fs = new FileStream(path, FileMode.Open))
-            {
-                for (int i = 5062; i < 5480; i += 42)
-                {
-                    byte[] buffer = new byte[20];
-                    fs.Seek(i, SeekOrigin.Begin);
-                    fs.Read(buffer, 0, 20);
-
-                    if (GetValidString(buffer) == login) // Находим пользователя
-                    {
-                        fs.Seek(i - 1, SeekOrigin.Begin);
-                        byte[] gid = new byte[1];
-                        gid[0] = Convert.ToByte(group);
-                        fs.Write(gid, 0, 1);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
         public string GetValidString(byte[] buffer) { return Encoding.UTF8.GetString(buffer).Split('\0')[0]; }
         public void CreateDrive()
         {
@@ -1340,6 +1201,145 @@ namespace OS_kurs
                 fs.Seek(56831, SeekOrigin.Begin);
                 fs.Write(BitConverter.GetBytes(0), 0, 1);
             }
+        }
+        public void WriteDataInBlock(UInt16 address, byte[] data)
+        {
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                byte[] buffer = new byte[2];
+                fs.Seek(address + 30, SeekOrigin.Begin); // Выбираем первый блок
+                fs.Read(buffer, 0, 2);
+
+                UInt16 bladdress = (UInt16)BitConverter.ToInt16(buffer, 0);
+
+                fs.Seek(Directory + 10, SeekOrigin.Begin); // Считаем размер директории
+                fs.Read(buffer, 0, 2);
+                UInt16 count = (UInt16)BitConverter.ToInt16(buffer, 0);
+
+                fs.Seek(bladdress + 24 + count, SeekOrigin.Begin); // Записываем данные
+                fs.Write(data, 0, data.Length);
+
+                if (data.Length < 488)
+                {
+                    fs.Seek(bladdress + 510, SeekOrigin.Begin); // Заполняем нулями до конца блока TODO DELETE
+                    fs.Write(BitConverter.GetBytes((UInt16)0), 0, 2);
+                }
+
+                fs.Seek(address + 10, SeekOrigin.Begin); // Записываем атрибуты INode
+                fs.Write(BitConverter.GetBytes(count + data.Length), 0, INode.SizeInBytesSize);
+                fs.Write(BitConverter.GetBytes((count + data.Length + 24) / 512 + 1), 0, INode.SizeInBlocksSize);
+                fs.Seek(address + 22, SeekOrigin.Begin);
+                fs.Write(Encoding.UTF8.GetBytes(DateTime.Now.ToString("ddMMyyyy")), 0, INode.ModificationTimeSize);
+            }
+        }
+        public bool IsLogin(string login, string password)
+        {
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                if (login == "")
+                    return false;
+
+                for (int i = 5062; i < 5480; i += 42)
+                {
+                    byte[] buffer = new byte[20];
+                    fs.Seek(i, SeekOrigin.Begin);
+                    fs.Read(buffer, 0, 20);
+
+                    string exLogin = GetValidString(buffer);
+
+                    if (exLogin == login)
+                    {
+                        fs.Seek(i + 20, SeekOrigin.Begin);
+                        fs.Read(buffer, 0, 20);
+
+                        string exPassword = GetValidString(buffer);
+
+                        if (exPassword == password)
+                        {
+                            byte[] id = new byte[1];
+                            fs.Seek(i - 2, SeekOrigin.Begin);
+                            fs.Read(id, 0, 1);
+
+                            UserID = id[0];
+                            fs.Read(id, 0, 1);
+
+                            GroupID = id[0];
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+        public string GetAllUsers()
+        {
+            string res = "";
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                for (int i = 5062; i < 5480; i += 42)
+                {
+                    byte[] buffer = new byte[20];
+                    fs.Seek(i, SeekOrigin.Begin);
+                    fs.Read(buffer, 0, 20);
+
+                    if (GetValidString(buffer) != "")
+                        res += GetValidString(buffer) + "\n";
+                }
+            }
+            return res;
+        }
+        public bool AddUser(string login, string password)
+        {
+            if (UserID != 0)
+                return false;
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                for (int i = 5062; i < 5480; i += 42)
+                {
+                    byte[] buffer = new byte[20];
+                    fs.Seek(i, SeekOrigin.Begin);
+                    fs.Read(buffer, 0, 20);
+
+                    if (GetValidString(buffer) == "") // Находим с пустым именем
+                    {
+                        fs.Seek(i - 2, SeekOrigin.Begin);
+                        fs.Write(BitConverter.GetBytes((byte)((i - 5062) / 42)), 0, 1);
+                        fs.Write(BitConverter.GetBytes((byte)0), 0, 1);
+                        fs.Write(Encoding.UTF8.GetBytes(login), 0, login.Length);
+                        fs.Seek(i + 20, SeekOrigin.Begin);
+                        fs.Write(Encoding.UTF8.GetBytes(password), 0, password.Length);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public bool ChangeGroup(string login, string group)
+        {
+            if (UserID != 0)
+                return false;
+            if (Convert.ToInt32(group) > 255 || Convert.ToInt32(group) < 0)
+                return false;
+            using (FileStream fs = new FileStream(path, FileMode.Open))
+            {
+                for (int i = 5062; i < 5480; i += 42)
+                {
+                    byte[] buffer = new byte[20];
+                    fs.Seek(i, SeekOrigin.Begin);
+                    fs.Read(buffer, 0, 20);
+
+                    if (GetValidString(buffer) == login) // Находим пользователя
+                    {
+                        fs.Seek(i - 1, SeekOrigin.Begin);
+                        byte[] gid = new byte[1];
+                        gid[0] = Convert.ToByte(group);
+                        fs.Write(gid, 0, 1);
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 }

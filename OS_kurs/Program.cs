@@ -11,7 +11,15 @@ namespace OS_kurs
         static string password = "";
         static void Main()
         {
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.Clear();
             sys = new FileSystem();
+
+            Console.Write("Создать новый диск? Y/N ");
+            if (Console.ReadKey().Key == ConsoleKey.Y)
+                sys.CreateDrive();
+            Console.WriteLine();
 
             Login();
 
@@ -167,13 +175,13 @@ namespace OS_kurs
                             "\tls\tОтображает содержимое текущей директории\n" +
                             "\trm\tУдаляет файл/директорию file\n" +
                             "\tcd\tПереходит в директорию dir\n" +
-                            "\tchmod\tИзменяет права доступа файла file на rights\n" + ///and for dir
+                            "\tchmod\tИзменяет права доступа файла/директории file на rights\n" + ///and for dir
                             "\tcp\tКопирует файл/директорию oldfile в newfile\n" +
                             "\tmove\tПеремещает файл file в директорию dir\n" + // MB TODO with slash / || TODO Directory
                             "\trename\tИзменяет название файла/директории oldfile на newfile\n" +
                             "\techo\tДописывает text в конец файла file\n" + // TODO BIGDATA
                             "\tcat\tОтображает содержимое файла file\n" + // TODO BIGDATA
-                            "\tlu\tОтображает лигины пользователей\n" +
+                            "\tlu\tОтображает логины пользователей\n" +
                             "\taddu\tДобавляет пользователя с логином login и паролем password\n" +
                             "\tchgu\tИзменяет группу пользователя login на gid\n" +
                             "\tuser\tЗапрашивает логин и пароль для входа в систему\n" +

@@ -77,8 +77,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="OS\" />
+    <Content Include="IPS\MemoryMapped.cpp" />
+    <Content Include="IPS\NamedPipe.cpp" />
+    <Content Include="IPS\Semaphore.cpp" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

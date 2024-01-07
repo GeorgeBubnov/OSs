@@ -79,7 +79,11 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <Content Include="IPS\fifoclient.c" />
+    <Content Include="IPS\fifoserver.c" />
     <Content Include="IPS\MemoryMapped.cpp" />
+    <Content Include="IPS\mmap-read.c" />
+    <Content Include="IPS\mmap-write.c" />
     <Content Include="IPS\NamedPipe.cpp" />
     <Content Include="IPS\Semaphore.cpp" />
   </ItemGroup>
